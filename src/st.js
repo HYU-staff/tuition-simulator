@@ -14,7 +14,7 @@ function buildStructFromStore(y,mul){
   const norm=rows=>{const o=[];for(const [S,c,p,ser,f,rx,reg,tu,am,gr,id,dept] of rows){if(rx==='Y')continue;o.push({S,c,p,g:ser==='의예계열'?'의학계열':ser,raw:ser,f,am,k:+gr,id,dept})}
     for(const r of o){if(r.raw==='의학계열')r.k+=2;const L=SIX.has(r.g)?6:4;r.L=L;if(r.k>L)r.k=L}return o};
   const cur=norm(rowsOf(y));if(!cur.length)return {sp:null,msg:'기준년도 자료 없음'};
-  if(cur.some(r=>!(r.k>=1)))return {sp:null,msg:'학년 열이 없어 정원·편제 탭은 내장 2026 구조를 사용합니다'};
+  if(cur.some(r=>!(r.k>=1)))return {sp:null,msg:EMB_META?`학년 열이 없어 정원·편제 탭은 내장 ${EMB_META.y} 구조를 사용합니다`:'학년 열이 없어 정원·편제 탭은 계산할 수 없습니다(학년·학번·학과전공명 열 필요)'};
   const ug=cur.filter(r=>r.p==='학부');
   const meanH=(rows,keyf)=>{const m=new Map();for(const r of rows){const kk=keyf(r)+'|'+r.S;m.set(kk,(m.get(kk)||0)+1)}const s=new Map(),n=new Map();for(const [kk,v] of m){const b=kk.slice(0,kk.lastIndexOf('|'));s.set(b,(s.get(b)||0)+v);n.set(b,(n.get(b)||0)+1)}const o=new Map();for(const [b,v] of s)o.set(b,v/n.get(b));return o};
   const H1=meanH(ug,r=>r.g+'|'+r.k);const h=(H,g,k)=>H.get(g+'|'+k)||0;
@@ -29,7 +29,7 @@ function buildStructFromStore(y,mul){
     {let n=0,d=0;for(const g of four)if(stay[g]!==null){n+=stay[g]*h(H0,g,4);d+=h(H0,g,4)}stayAvg=d?n/d:SP_EMB.stayAvg}
     for(const g of gs){C[g]=[];FB[g]=[];raw[g].forEach((v,k)=>{if(v===null){C[g].push(k<3?avg[k]:1);FB[g].push(k+1)}else C[g].push(v)});ST[g]=stay[g]!==null?stay[g]:(Ls[g]===4?stayAvg:0)}
     ratioSrc=`${y-1}→${y} 실적`}
-  else{for(const g of gs){const e=SP_EMB.G.find(x=>x.g===g);C[g]=e?e.c.slice():Array.from({length:Ls[g]-1},(_,k)=>k<3?SP_EMB.avg[k]:1);ST[g]=e?e.st:(Ls[g]===4?SP_EMB.stayAvg:0);FB[g]=e?e.fb:[]}ratioSrc='전년도 자료가 없어 내장 2025→2026 진급률 사용'}
+  else{for(const g of gs){const e=SP_EMB.G.find(x=>x.g===g);C[g]=e?e.c.slice():Array.from({length:Ls[g]-1},(_,k)=>k<3?SP_EMB.avg[k]:1);ST[g]=e?e.st:(Ls[g]===4?SP_EMB.stayAvg:0);FB[g]=e?e.fb:[]}ratioSrc=SP_EMB.G.length?'전년도 자료가 없어 내장 진급률 사용':'전년도 자료가 없어 진급률 1.0(유지) 가정 · 전년도 RAW를 함께 올리면 실적으로 산출'}
   const order=['인문·사회계열','이학계열','공학계열','예능계열','음악계열','체육계열','의학계열','약학계열','한양인터칼리지계열'];
   const gsO=[...order.filter(g=>gs.includes(g)),...gs.filter(g=>!order.includes(g))];
   const domH=meanH(ug.filter(r=>r.f==='내국인'),r=>r.g);
@@ -73,7 +73,7 @@ function posD(x){let s=0;for(const g in x.dsum)if(x.dsum[g]>0)s+=x.dsum[g];retur
 const BASEst=()=>SPX.G.reduce((a,e)=>a+e.rev,0)+SPX.grad.rev+SPX.res;
 /* 렌더링 */
 const fmtN=v=>Math.round(v).toLocaleString('ko-KR');
-function stRender(){if(!SPX)return;const S=SPX,o=opts(),c=cap(o),Sx=scen(o),cfg=stCfg();const T=+$('stYear').value||1;const N=S.BY+T;
+function stRender(){const nsp=!SPX||!SPX.G.length;document.body.classList.toggle('nosp',nsp);if(nsp)return;const S=SPX,o=opts(),c=cap(o),Sx=scen(o),cfg=stCfg();const T=+$('stYear').value||1;const N=S.BY+T;
   // 0. 기준 구조 표
   const maxL=Math.max(...S.G.map(e=>e.L));
   let h=`<thead><tr><th>계열</th>${Array.from({length:maxL},(_,i)=>`<th>${i+1}학년</th>`).join('')}<th>재학생 계</th><th>진급률(1→2, 2→3, 3→4…, 잔류)</th><th>1인당 연 징수(전체)</th><th>1인당 연 징수(내국인)</th><th>입학정원(편집)</th><th>신입생 충원율</th></tr></thead><tbody>`;
@@ -82,7 +82,7 @@ function stRender(){if(!SPX)return;const S=SPX,o=opts(),c=cap(o),Sx=scen(o),cfg=
   const p0=stProject({...cfg,r:0,struct:false,fillDx:0,dropDx:0,elast:0,gradDecl:0,pay:0,T:0});const chk=revAt(p0,0,0,0)-BASEst();
   h+=`<tr><td><b>학부 계</b></td>${Array.from({length:maxL},(_,i)=>`<td><b>${fmtN(S.G.reduce((a,e)=>a+(e.h[i]||0),0))}</b></td>`).join('')}<td><b>${fmtN(S.G.reduce((a,e)=>a+e.tot,0))}</b></td><td></td><td colspan="2" class="t">학부 ${eok(ugRev)}억 + 대학원 ${eok(S.grad.rev)}억 + 연구등록 ${eok(S.res)}억</td><td colspan="2" class="t"><span class="pill ${Math.abs(chk)<1?'p-ok':'p-no'}">${Math.abs(chk)<1?'기준 징수액 재현 일치':'불일치 '+fmtN(chk)}</span></td></tr></tbody>`;
   $('stBase').innerHTML=h;
-  $('stBaseNote').innerHTML=`기준년도 ${S.BY} · 진급률 출처: ${S.src||'2025→2026 실적'} · 회색 진급률은 표본이 적거나 비정상(0.7~1.3 밖)이라 학부 평균(1→2 ${S.avg[0].toFixed(2)}, 2→3 ${S.avg[1].toFixed(2)}, 3→4 ${S.avg[2].toFixed(2)}) 또는 1.0으로 대체. 4학년 칸은 초과학기 재학생 포함(잔류율). 의예는 의학 1~2학년, 의학은 3~6학년으로 합쳐 6년 과정으로 계산.`;
+  $('stBaseNote').innerHTML=`기준년도 ${S.BY} · 진급률 출처: ${S.src||'전년도 대비 실적'} · 회색 진급률은 표본이 적거나 비정상(0.7~1.3 밖)이라 학부 평균(1→2 ${S.avg[0].toFixed(2)}, 2→3 ${S.avg[1].toFixed(2)}, 3→4 ${S.avg[2].toFixed(2)}) 또는 1.0으로 대체. 4학년 칸은 초과학기 재학생 포함(잔류율). 의예는 의학 1~2학년, 의학은 3~6학년으로 합쳐 6년 과정으로 계산.`;
   document.querySelectorAll('.qIn').forEach(el=>el.addEventListener('change',()=>{QUOTA[el.dataset.g]=Math.max(0,+el.value||0);stRender()}));
   renderPlanTables(S);
   // 1. 대시보드

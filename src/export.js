@@ -29,6 +29,7 @@ function planAOA(){const out=[['신설 학과'],['학과명','계열','입학정
   if(CLOSED.length){out.push([],['폐지·감축 학과 연차별 잔여 재학생']);tableAOA($('tCloseSch')).forEach(r=>out.push(r))}
   out.push([],['계열 간 정원 이동(직접 입력)'],['감원 계열','증원 계열','이동 인원','적용 연도']);MOVES.forEach(x=>out.push([x.from,x.to,x.n,x.y]));if(!MOVES.length)out.push(['(없음)']);return out}
 async function exportReview(){try{
+  if(!SEG.length){document.querySelector('.navtab[data-tab="1"]').click();status(NO_DATA_MSG);$('s0').scrollIntoView({behavior:'smooth'});return}
   if(typeof XLSX==='undefined')throw new Error('엑셀 모듈 없음');
   const hid=[$('tab1').hidden,$('tab2').hidden];$('tab1').hidden=false;$('tab2').hidden=false;
   try{render();stRender();var o=opts(),now=new Date();var ts=`${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}_${String(now.getHours()).padStart(2,'0')}${String(now.getMinutes()).padStart(2,'0')}`;

@@ -57,7 +57,7 @@
       <label class="btn" for="file">엑셀·CSV 파일 선택<input id="file" type="file" accept=".xlsx,.xls,.csv" multiple></label>
       <label class="f2">기준년도 <select id="yearSel"></select></label>
       <label class="f2" id="annWrap" hidden><input type="checkbox" id="annualize" checked> 한 학기만 있으면 연간 환산(×2)</label>
-      <button type="button" class="btn ghost" id="resetData">내장 데이터(2026)로 되돌리기</button>
+      <button type="button" class="btn ghost" id="resetData">올린 자료 지우기</button>
     </div>
     <div id="upStatus" class="status" role="status"></div>
     <div class="tbl"><table id="valTbl"></table></div>
@@ -119,6 +119,10 @@
   </div>
 </aside>
 <main>
+  <section class="panel ndmsg" id="stNoData">
+    <h2>기준 데이터가 필요합니다</h2>
+    <p class="lead">정원·편제 시뮬레이션은 학년·학번·학과전공명 열이 있는 학과별징수총액통계표(RAW)를 올려야 계산됩니다. 「등록금 인상률」 탭의 <b>0. 기준 데이터</b>에서 파일을 올려 주세요. 전년도 RAW도 함께 올리면 학년별 진급률을 실적으로 산출합니다.</p>
+  </section>
   <section class="panel">
     <h2>0. 학부 재학 구조와 편제 개편 입력</h2>
     <p class="lead">계열별 학년 재학생은 기준년도 1·2학기 평균, 진급률은 전년도 대비 실적(휴학·복학·편입·중도탈락 순효과)입니다. 입학정원 칸은 자료에 없어 기준년도 1학년 재학생 수를 넣어 두었으니 실제 입학정원으로 바꿔 쓰세요.</p>

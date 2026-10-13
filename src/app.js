@@ -1,13 +1,13 @@
 const $=id=>document.getElementById(id);
 const PROCS=['학부','일반대학원','전문대학원','특수대학원'];
-let SEG=SEGS,RES=RESEARCH,BY=2026,BASE=0,UG_AVG=0,SRC='내장 데이터: 2026학년도 징수통계표 RAW(1학기 2026.4.9. / 2학기 2026.10.5. 기준)',PREV_UP=2.53;
+let SEG=SEGS,RES=RESEARCH,BY=EMB_META?EMB_META.y:new Date().getFullYear(),BASE=0,UG_AVG=0,SRC=EMB_META?EMB_META.src:'기준 데이터 없음',PREV_UP=EMB_META?EMB_META.prev:null;
 const CPI={2022:5.1,2023:3.6,2024:2.3,2025:2.1,2026:2.6}; // 통계청 연간 소비자물가 상승률(2026은 추정치)
 let lastBY=null;
 function setData(segs,res,by,src,prevUp){if(by!==lastBY){lastBY=by;[by-2,by-1,by].forEach((y,i)=>{const el=document.getElementById('cpi'+(i+1));if(el&&CPI[y]!==undefined)el.value=CPI[y]})}SEG=segs;RES=res;BY=by;SRC=src;PREV_UP=prevUp;
   BASE=SEG.reduce((s,x)=>s+x[6],0)+RES;
   const UG=SEG.filter(x=>x[1]==='학부'&&x[3]==='내국인');const un=UG.reduce((s,x)=>s+x[4],0);
   UG_AVG=un?2*UG.reduce((s,x)=>s+x[6],0)/un:0;}
-setData(SEGS,RESEARCH,2026,SRC,2.53);
+setData(SEGS,RESEARCH,BY,SRC,PREV_UP);
 const eok=v=>(v/1e8).toLocaleString('ko-KR',{minimumFractionDigits:1,maximumFractionDigits:1});
 const sg=v=>(v>0?'+':'')+eok(v);
 const cls=v=>v<-0.5e7?'neg':(v>0.5e7?'pos':'');
@@ -51,6 +51,7 @@ function risk(r,net,o){
 const bars=n=>'<span class="risk">'+[1,2,3,4,5].map(i=>`<i class="${i<=n?'on':''}"></i>`).join('')+'</span>';
 let sel='B';
 function render(){if(window.__stReady)LMEMO.clear();
+  const nd=!SEG.length;document.body.classList.toggle('nodata',nd);if(nd){$('baseLine').textContent='기준 데이터 없음 · RAW 파일을 올려 주세요';$('cpiY1').textContent=BY-2;$('cpiY2').textContent=BY-1;$('cpiY3').textContent=BY;$('capOut').textContent=pct(cap(opts()));return}
   const o=opts();const c=cap(o);const S=scen(o);S.D=Math.round((parseFloat($('rD').value)||0)*100)/100;
   $('capOut').textContent=pct(c);if(window.__stReady)syncLinkUI();
   $('baseLine').textContent=`${BY}학년도 징수액 ${eok(BASE)}억원 · 학부 내국인 1인당 연간 등록금 ${Math.round(UG_AVG/1e4).toLocaleString('ko-KR')}만원`;
@@ -252,14 +253,19 @@ function showValidation(perSem,fb,mul){
   $('valNote').innerHTML=`${SRC}<br>집계 단위 ${SEG.length}개(캠퍼스×과정×계열×내외국인) · 실효 징수율 0.9~1.15 밖 단위 ${odd}개${fb?` · 전액 등록자가 없어 평균 단가로 대체한 단위 ${fb}개`:''}${mul===2?' · <b>한 학기 자료라 연간 환산값입니다</b>':''}`;
 }
 $('resetData').addEventListener('click',()=>{try{localStorage.removeItem('tuitionSimData')}catch(e){}for(const k in STORE)delete STORE[k];
-  $('yearSel').innerHTML='<option>2026학년도</option>';$('annWrap').hidden=true;
-  setData(SEGS,RESEARCH,2026,'내장 데이터: 2026학년도 징수통계표 RAW(1학기 2026.4.9. / 2학기 2026.10.5. 기준)',2.53);$('nssBase').value='none';setSP(SP_EMB);stInitControls();
-  status('내장 데이터(2026학년도)로 되돌렸습니다.');showValidation(EMB_SEM,0,1);render()});
-const EMB_SEM=[{s:'1학기',rows:42048,n:39034,a:219338446000,ra:2440543000},{s:'2학기',rows:40174,n:37250,a:210218075000,ra:2366593000}];
+  $('annWrap').hidden=true;
+  if(EMB_META){$('yearSel').innerHTML=`<option>${EMB_META.y}학년도</option>`;setData(SEGS,RESEARCH,EMB_META.y,EMB_META.src,EMB_META.prev);$('nssBase').value='none';setSP(SP_EMB);stInitControls();
+    status(`내장 데이터(${EMB_META.y}학년도)로 되돌렸습니다.`);showValidation(EMB_SEM,0,1)}
+  else{$('yearSel').innerHTML='<option>—</option>';setData([],0,new Date().getFullYear(),'기준 데이터 없음',null);setSP(SP_EMB);stInitControls();
+    $('valTbl').innerHTML='';$('valNote').innerHTML='';status(NO_DATA_MSG)}
+  render();if(!$('tab2').hidden)stRender()});
+const NO_DATA_MSG='<b>기준 데이터가 없습니다.</b> 「엑셀·CSV 파일 선택」으로 당해연도 학과별징수총액통계표(RAW) 1·2학기 파일(또는 통합 RAW)을 올리면 시뮬레이션이 시작됩니다.';
+$('resetData').textContent=EMB_META?`내장 데이터(${EMB_META.y})로 되돌리기`:'올린 자료 지우기';
 (function boot(){let saved=null;try{saved=JSON.parse(localStorage.getItem('tuitionSimData')||'null')}catch(e){}
   if(saved&&saved.segs){window.__savedSP=saved.sp||null;setData(saved.segs,saved.res,saved.y,saved.src+' (이전에 올린 자료 · 이 브라우저에 저장됨)',saved.prev);
     $('yearSel').innerHTML=`<option>${saved.y}학년도</option>`;if(saved.prev!==null)$('nssBase').value=saved.prev>0.005?'none':'recv';
     status('이전에 올린 기준 데이터를 불러왔습니다. 새 파일을 올리면 교체됩니다.');showValidation(saved.perSem,saved.fb,saved.mul)}
-  else{$('yearSel').innerHTML='<option>2026학년도</option>';status('내장 데이터(2026학년도)를 사용 중입니다. 새 기준년도 RAW 파일을 올리면 자동으로 바뀝니다.');showValidation(EMB_SEM,0,1)}})();
+  else if(EMB_META){$('yearSel').innerHTML=`<option>${EMB_META.y}학년도</option>`;status(`내장 데이터(${EMB_META.y}학년도)를 사용 중입니다. 새 기준년도 RAW 파일을 올리면 자동으로 바뀝니다.`);showValidation(EMB_SEM,0,1)}
+  else{$('yearSel').innerHTML='<option>—</option>';status(NO_DATA_MSG)}})();
 render();
 let _rz;window.addEventListener('resize',()=>{clearTimeout(_rz);_rz=setTimeout(render,150)});

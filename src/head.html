@@ -120,4 +120,8 @@ svg text{fill:var(--muted);font-family:var(--f-num);font-size:11px}
 .status{font-size:13px;padding:8px 10px;border-radius:6px;background:var(--accent-soft);margin-bottom:10px}
 .status.err{background:var(--bad-soft);color:var(--bad)}
 .status.warn{background:var(--warn-soft);color:var(--warn)}
+.ndmsg{display:none}
+body.nosp .ndmsg{display:block}
+body.nosp #tab2 main>section:not(.ndmsg){display:none}
+body.nodata #s1,body.nodata #s2,body.nodata #s3,body.nodata #s4{display:none}
 </style>
