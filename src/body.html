@@ -1,0 +1,173 @@
+<header class="top">
+  <div>
+    <h1 id="h1">등록금·정원 재정 시뮬레이터</h1>
+    <div class="sub" id="subLine"></div>
+  </div>
+  <div class="hdrR"><div class="sub" id="baseLine"></div><button type="button" class="btn" id="exportBtn">검토 결과 엑셀로 내려받기</button></div>
+</header>
+<nav class="tabsTop" role="tablist" aria-label="시뮬레이터 구분"><button type="button" class="navtab" role="tab" data-tab="1" aria-selected="true">등록금 인상률</button><button type="button" class="navtab" role="tab" data-tab="2" aria-selected="false">정원·편제 개편</button></nav>
+<div class="wrap" id="tab1">
+<aside class="panel" aria-label="가정 입력">
+  <div class="grp"><h3>인상률 범위</h3>
+    <label class="f">최저 인상률(%)<input id="rMin" type="number" step="0.5" value="-2"></label>
+    <label class="f">최고 인상률(%)<input id="rMax" type="number" step="0.5" value="5"></label>
+    <label class="f">간격(%p)<input id="rStep" type="number" step="0.1" min="0.1" value="0.5"></label>
+  </div>
+  <div class="grp"><h3>법정 인상률 한도</h3>
+    <label class="f"><span><span id="cpiY1"></span>년 CPI 상승률(%)<small>통계청 확정치</small></span><input id="cpi1" type="number" step="0.1" value="2.3"></label>
+    <label class="f"><span><span id="cpiY2"></span>년 CPI 상승률(%)<small>통계청 확정치</small></span><input id="cpi2" type="number" step="0.1" value="2.1"></label>
+    <label class="f"><span><span id="cpiY3"></span>년 CPI 상승률(%)<small>기준년도 값은 추정치일 수 있음 · 12월 교육부 공고로 교체</small></span><input id="cpi3" type="number" step="0.1" value="2.6"></label>
+    <label class="f"><span>배수<small>고등교육법 개정(2025.7) 1.5→1.2배</small></span><input id="mult" type="number" step="0.1" value="1.2"></label>
+    <div class="capbox">추정 법정 한도 <b id="capOut"></b></div>
+  </div>
+  <div class="grp"><h3>인상 적용 대상</h3>
+    <div class="chk">
+      <label><input type="checkbox" id="sc학부" checked> 학부</label>
+      <label><input type="checkbox" id="sc일반대학원" checked> 일반대학원</label>
+      <label><input type="checkbox" id="sc전문대학원" checked> 전문대학원</label>
+      <label><input type="checkbox" id="sc특수대학원" checked> 특수대학원</label>
+      <label><input type="checkbox" id="scForeign" checked> 외국인 포함</label>
+    </div>
+  </div>
+  <div class="grp"><h3>정원·편제 연동</h3>
+    <label class="chk"><input type="checkbox" id="linkST" checked> 「정원·편제 개편」 탭 추계 반영</label>
+    <p class="note" id="linkNote"></p>
+  </div>
+  <div class="grp"><h3>재학생 · 납부</h3>
+    <label class="f" id="declineWrap"><span>재학생 감소율(%)<small id="declineSmall">인구변동 반영 · 가정치</small></span><input id="decline" type="number" step="0.1" value="0.5"></label>
+    <label class="f"><span>현재 충원율(%)<small>편제정원 자료 미보유 · 가정치</small></span><input id="fill" type="number" step="0.5" value="100"></label>
+    <label class="f"><span>충원율 하락(%p)</span><input id="fillDrop" type="number" step="0.5" value="0"></label>
+    <label class="f"><span>납부율 변동(%p)<small>기준: 계열별 실효 징수율</small></span><input id="pay" type="number" step="0.1" value="0"></label>
+  </div>
+  <div class="grp"><h3>국가장학금 Ⅱ유형</h3>
+    <label class="f"><span>기준년도 수혜<small id="nssHint"></small></span><select id="nssBase"><option value="none" selected>미수혜(기준년도 인상)</option><option value="recv">수혜</option></select></label>
+    <label class="f"><span>적용년도 제도</span><select id="nssExist"><option value="abolish" selected>폐지(교육부 계획)</option><option value="keep">존속 가정</option></select></label>
+    <label class="f"><span>Ⅱ유형 지원액(억원)<small>존속 가정 시 사용 · 실제 배정액으로 교체</small></span><input id="nssAmt" type="number" step="1" value="30"></label>
+  </div>
+  <div class="grp"><h3>법정 필수 증액분</h3>
+    <label class="f"><span>필수 증액분(억원)<small>교원 처우개선 등 · 입력 필요</small></span><input id="mand" type="number" step="1" value="0"></label>
+    <label class="f"><span>B안 한도 여유폭(%p)<small>최적 지점 산정용</small></span><input id="buffer" type="number" step="0.1" value="0.3"></label>
+  </div>
+</aside>
+<main>
+  <section class="panel" id="s0">
+    <h2>0. 기준 데이터</h2>
+    <p class="lead">매년 기준년도 「학과별징수총액통계표(RAW)」 엑셀(1학기·2학기)을 올리면 그 해 실적으로 바뀝니다. 여러 해가 섞인 통합 RAW 파일도 됩니다. 파일은 이 PC의 브라우저 안에서만 읽고 외부로 보내지 않습니다.</p>
+    <div class="up">
+      <label class="btn" for="file">엑셀·CSV 파일 선택<input id="file" type="file" accept=".xlsx,.xls,.csv" multiple></label>
+      <label class="f2">기준년도 <select id="yearSel"></select></label>
+      <label class="f2" id="annWrap" hidden><input type="checkbox" id="annualize" checked> 한 학기만 있으면 연간 환산(×2)</label>
+      <button type="button" class="btn ghost" id="resetData">내장 데이터(2026)로 되돌리기</button>
+    </div>
+    <div id="upStatus" class="status" role="status"></div>
+    <div class="tbl"><table id="valTbl"></table></div>
+    <p class="note" id="valNote"></p>
+  </section>
+  <section class="panel" id="s1">
+    <h2>1. 요약 대시보드</h2>
+    <p class="lead">예상 총 징수액 = Σ(계열별 단가 × (1+인상률) × 예상 재학생 수 × 예상 납부율) + 연구등록금 · 순재정 수지 변화 = 총 징수 − 기준년도 징수 − 국장 Ⅱ유형 손실 − 법정 필수 증액분</p>
+    <div class="kpis" id="kpis"></div>
+    <div id="chart" class="tbl" aria-label="인상률별 순재정 수지 변화 차트"></div>
+    <div class="tbl"><table id="dash"><thead><tr><th>인상률(%)</th><th>총 징수 예상액</th><th>기준 대비 증감액</th><th>국장 Ⅱ유형 손실</th><th>필수 증액분</th><th>최종 순재정 수지 변화</th><th>법정 한도</th><th>시나리오</th></tr></thead><tbody></tbody></table></div>
+    <div class="legend"><span><span class="pill p-A">A</span> 동결</span><span><span class="pill p-B">B</span> 적정 인상(최적)</span><span><span class="pill p-C">C</span> 법정 최대</span><span><span class="pill p-D">D</span> 직접 입력</span><span>음수(빨강) = 기준년도 대비 감소</span></div>
+  </section>
+  <section class="panel" id="s2">
+    <h2>2. 가상 시나리오 (추천 3안 + 직접 입력안)</h2>
+    <p class="lead">학부 1인당 연간 부담 증가는 학부 내국인 평균 연간 등록금(기준년도 실적) 기준</p>
+    <div class="dIn"><label for="rD"><span class="pill p-D">D</span> 직접 입력 인상률(%)</label><input id="rD" type="number" step="0.1" value="1.5"><span class="sub">입력하면 D안 카드·대시보드·민감도·가이드에 바로 반영됩니다</span></div>
+    <div class="cards" id="cards"></div>
+  </section>
+  <section class="panel" id="s3">
+    <h2>3. 민감도 분석 · 리스크 매트릭스</h2>
+    <p class="lead">선택한 시나리오 인상률에서 충원율 하락과 납부율 변동이 겹칠 때의 최종 순재정 수지 변화(억원). 재학생 감소율·필수 증액분 등 다른 가정은 왼쪽 값 그대로 적용.</p>
+    <div class="tabs" role="group" aria-label="시나리오 선택"><button type="button" data-s="A" aria-pressed="false">A 동결</button><button type="button" data-s="B" aria-pressed="true">B 적정 인상</button><button type="button" data-s="C" aria-pressed="false">C 법정 최대</button><button type="button" data-s="D" aria-pressed="false">D 직접 입력</button></div>
+    <div class="tbl"><table class="mx" id="mx"></table></div>
+    <p class="note" id="mxNote"></p>
+  </section>
+  <section class="panel" id="s4">
+    <h2>4. 예산 담당자 가이드 · 추천안</h2>
+    <div class="guide" id="guide"></div>
+  </section>
+</main>
+</div>
+<div class="wrap" id="tab2" hidden>
+<aside class="panel" aria-label="정원·편제 가정 입력">
+  <div class="grp"><h3>분석 기준</h3>
+    <label class="f"><span>분석 대상 연도</span><select id="stYear"></select></label>
+    <label class="f"><span>분석용 인상률(%)<small>2·4번 섹션 기준값 · 매년 동일 적용</small></span><input id="stRate" type="number" step="0.1" value="2.5"></label>
+    <p class="note">인상률 범위·법정 한도·납부율은 「등록금 인상률」 탭 설정을 함께 씁니다.</p>
+  </div>
+  <div class="grp"><h3>정원 조정</h3>
+    <label class="f"><span>정원 감축 비율(%)<small>모든 계열 입학정원, 0~10</small></span><input id="stCut" type="number" step="0.5" min="0" max="10" value="0"></label>
+    <label class="f"><span>계열 이동 비율(%)<small>인문·사회 입학정원 중 이동분</small></span><input id="stMove" type="number" step="1" min="0" max="50" value="0"></label>
+    <label class="f"><span>이동분 중 공학(IT) 비중(%)<small>나머지는 이학(바이오)</small></span><input id="stSplit" type="number" step="5" min="0" max="100" value="70"></label>
+    <label class="f"><span>감축·이동 시작 연도</span><select id="stStart"></select></label>
+  </div>
+  <div class="grp"><h3>학령인구 · 재학</h3>
+    <label class="f"><span>신입생 충원율 변화(%p)<small>학령인구 감소면 음수</small></span><input id="stFill" type="number" step="0.5" value="0"></label>
+    <label class="f"><span>중도탈락률 추가(%p)<small>진급률에 추가 반영</small></span><input id="stDrop" type="number" step="0.1" value="0"></label>
+    <label class="f"><span>인상 탄력성(%p)<small>인상률 1%p당 신입생 충원율 하락</small></span><input id="stElast" type="number" step="0.1" value="0.3"></label>
+    <label class="f"><span>대학원 재학생 연 감소율(%)</span><input id="stGrad" type="number" step="0.5" value="0"></label>
+  </div>
+  <div class="grp"><h3>시나리오 · 최적화</h3>
+    <label class="f"><span>A안 정원 감축(%)</span><input id="scA" type="number" step="0.5" value="5"></label>
+    <label class="f"><span>B안 계열 이동(%)</span><input id="scB" type="number" step="1" value="10"></label>
+    <label class="f"><span>C안 충원율 위험(%p)<small>최대 인상 시 추가 하락 가정</small></span><input id="scC" type="number" step="0.5" value="2"></label>
+    <label class="f"><span>이동 가능 상한(%)<small>교원·공간 여건</small></span><input id="optMax" type="number" step="5" value="20"></label>
+    <label class="f"><span>증원 학생 1명당 추가 교육비(만원/년)</span><input id="optCost" type="number" step="10" value="0"></label>
+    <label class="chk"><input type="checkbox" id="scPlan" checked> 아래 직접 입력한 신설·폐지·이동 계획을 A~C안에도 반영</label>
+  </div>
+</aside>
+<main>
+  <section class="panel">
+    <h2>0. 학부 재학 구조와 편제 개편 입력</h2>
+    <p class="lead">계열별 학년 재학생은 기준년도 1·2학기 평균, 진급률은 전년도 대비 실적(휴학·복학·편입·중도탈락 순효과)입니다. 입학정원 칸은 자료에 없어 기준년도 1학년 재학생 수를 넣어 두었으니 실제 입학정원으로 바꿔 쓰세요.</p>
+    <div class="tbl"><table id="stBase"></table></div>
+    <p class="note" id="stBaseNote"></p>
+    <h3 class="h3">신설 학과</h3>
+    <div class="tbl"><table id="tNew"></table></div>
+    <button type="button" class="btn ghost sm" id="addNew">+ 신설 학과 추가</button>
+    <h3 class="h3">폐지·감축 학과 <small class="sub">기존 재학생은 졸업까지 연차별로 자연 감소</small></h3>
+    <div class="tbl"><table id="tClose"></table></div>
+    <button type="button" class="btn ghost sm" id="addClose">+ 폐지·감축 학과 추가</button>
+    <div class="tbl"><table id="tCloseSch"></table></div>
+    <h3 class="h3">계열 간 정원 이동 (직접 입력)</h3>
+    <div class="tbl"><table id="tMove"></table></div>
+    <button type="button" class="btn ghost sm" id="addMove">+ 정원 이동 추가</button>
+  </section>
+  <section class="panel">
+    <h2>1. 편제 개편 · 정원 변동 종합 대시보드</h2>
+    <p class="lead" id="stDashLead"></p>
+    <div class="tbl"><table id="stDash"></table></div>
+    <p class="note">전년대비 순증감 = 자연 증감(진급·졸업·학령인구) + 편제/정원변동 수입효과 + 인상률 수입효과. 편제정원은 학부 입학정원 × 수업연한(연차별 누적), 실제 재학생수는 학부 + 대학원(연구등록 제외).</p>
+  </section>
+  <section class="panel">
+    <h2>2. 정원·편제 변동 세부 영향 분석</h2>
+    <p class="lead" id="stDecLead"></p>
+    <div class="kpis" id="stKpi"></div>
+    <div class="tbl"><table id="stSer"></table></div>
+    <div id="stMix" class="guide"></div>
+    <h3 class="h3">연차별 추이</h3>
+    <div class="tbl"><table id="stTraj"></table></div>
+  </section>
+  <section class="panel">
+    <h2>3. 가상 시나리오 (정원 × 등록금)</h2>
+    <p class="lead" id="stScLead"></p>
+    <div class="cards" id="stCards"></div>
+  </section>
+  <section class="panel">
+    <h2>4. 이사회·대학평의원회 보고용 핵심 요약</h2>
+    <p class="lead" id="stOptLead"></p>
+    <div class="tbl"><table class="mx" id="stOpt"></table></div>
+    <div class="guide" id="stGuide"></div>
+  </section>
+</main>
+</div>
+
+<div class="foot">
+  근거: <a href="https://www.hankyung.com/article/2025123153251" target="_blank" rel="noopener">2026학년도 법정 한도 3.19% (한국경제, 2025.12.31)</a> ·
+  <a href="https://www.newsis.com/view/NISX20250723_0003263742" target="_blank" rel="noopener">한도 배수 1.5→1.2배 (뉴시스, 2025.7.23)</a> ·
+  <a href="https://biz.sbs.co.kr/amp/article/20000278292" target="_blank" rel="noopener">2027년 국가장학금 Ⅱ유형 폐지 계획 (SBS Biz, 2025.12.13)</a> ·
+  <a href="https://www.koreajoongangdaily.com/business/consumer-prices-up-29-in-september/12902211" target="_blank" rel="noopener">2026년 9월 CPI 2.9% (JoongAng Daily)</a>.
+  기준 징수액·단가·재학생 수·학년별 진급률은 「0. 기준 데이터」에 올린 징수통계표 RAW에서 산출. 편제정원·충원율·Ⅱ유형 지원액·필수 증액분은 가정치이므로 실제 값으로 바꿔 쓰세요.
+</div>
